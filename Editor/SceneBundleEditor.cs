@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -10,6 +11,7 @@ namespace Hirame.Muses.Editor
         public override void OnInspectorGUI ()
         {
             serializedObject.Update ();
+            
             using (var chanceScope = new EditorGUI.ChangeCheckScope ())
             {
                 ShowMainControls ();
@@ -27,33 +29,74 @@ namespace Hirame.Muses.Editor
             {
                 if (GUILayout.Button ("Load Scenes"))
                 {
-                
+                    Debug.Log ("LOAD SCENES");
+                    (target as SceneBundle)?.LoadScenes ();
                 }
             }
         }
 
         private void ShowMainProperties ()
         {
-            DrawBoxedProp ("defaultLoadBehavior");
+            //DrawBoxedProp ("defaultLoadBehavior");
         }
         
 
         private void DrawSubScenes ()
         {
-            if (DropZone ("Add Scenes", 60, out var droppedAssets))
+            var scenesProp = serializedObject.FindProperty ("scenes");
+            
+            if (DropZone<SceneAsset> ("Drop Scenes To Add", 60, out var droppedAssets))
             {
-                Debug.Log (droppedAssets.Length);
+                AddScenes (scenesProp, droppedAssets);
             }
-            DrawBoxedProp ("scenes");
+            
+            DrawBoxedProperty (scenesProp);
         }
 
-        private void DrawBoxedProp (string propName)
+        private void AddScenes (SerializedProperty property, List<SceneAsset> scenes)
         {
-            var prop = serializedObject.FindProperty (propName);
+            var hashSet = GetIncludedScenes (property);
+
+            for (var i = scenes.Count - 1; i >= 0; i--)
+            {
+               if (scenes[i] == null || hashSet.Contains (scenes[i]))
+                   scenes.RemoveAt (i);
+            }
             
+            (target as SceneBundle)?.AddScenes (scenes);
+            serializedObject.Update ();
+            serializedObject.ApplyModifiedProperties ();
+        }
+
+        private HashSet<SceneAsset> GetIncludedScenes (SerializedProperty property)
+        {
+            var hashSet = new HashSet<SceneAsset> ();
+            var sceneCount = property.arraySize;
+
+            for (var i = 0; i < sceneCount; i++)
+            {
+                var prop = property.GetArrayElementAtIndex (i);
+                var sceneAsset = AssetDatabase.LoadAssetAtPath<SceneAsset> (
+                    AssetDatabase.GUIDToAssetPath (prop.FindPropertyRelative ("sceneGuid").stringValue));
+                
+                if (sceneAsset != null)
+                    hashSet.Add (sceneAsset);
+            }
+            
+            return hashSet;
+        }
+
+        private void DrawBoxedProperty (string propName)
+        {
+            var property = serializedObject.FindProperty (propName);
+            DrawBoxedProperty (property);
+        }
+
+        private void DrawBoxedProperty (SerializedProperty property)
+        {
             using (new GUILayout.VerticalScope (GUI.skin.box))
             {
-                EditorGUILayout.PropertyField (prop, true);
+                EditorGUILayout.PropertyField (property, true);
             }
         }
 
@@ -63,7 +106,7 @@ namespace Hirame.Muses.Editor
             EditorGUILayout.PropertyField (prop, true);
         }
         
-        public static bool DropZone (string title, int height, out Object[] assets)
+        public static bool DropZone<T> (string title, int height, out List<T> assets) where T : Object
         {
             GUILayout.Box (title, GUILayout.ExpandWidth(true), GUILayout.MaxHeight (height));
             var dropRect = GUILayoutUtility.GetLastRect ();
@@ -73,25 +116,38 @@ namespace Hirame.Muses.Editor
             var isAccepted = false;
             
             if (dropRect.Contains (eventCurrent.mousePosition))
-            {
+            {            
                 DragAndDrop.visualMode = DragAndDropVisualMode.Link;
-                
-                if (eventType != EventType.DragUpdated || eventType != EventType.DragPerform)
-                {
-                    assets = null;
-                    return false;
-                }
                 
                 if (eventType == EventType.DragPerform) 
                 {
                     DragAndDrop.AcceptDrag();
                     isAccepted = true;
                 }
+                else if (eventType != EventType.DragUpdated)
+                {
+                    assets = null;
+                    return false;
+                }
+                
                 Event.current.Use();
             }
 
-            assets = isAccepted ? DragAndDrop.objectReferences : null;
-            return isAccepted ;
+            if (isAccepted)
+            {
+                assets = new List<T> ();
+                foreach (var objRef in DragAndDrop.objectReferences)
+                {
+                    if (objRef is T asset)
+                        assets.Add (asset);
+                }
+            }
+            else
+            {
+                assets = null;
+            }
+            
+            return isAccepted;
         }
     }
 

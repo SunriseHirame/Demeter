@@ -1,0 +1,17 @@
+{
+    "name": "Hirame.Demeter.Editor",
+    "references": [
+        "GUID:83b2b053c31a10140a0bf3ba6ffd6622",
+        "GUID:89ff160e8ad0e8644852d4cc6d95216b",
+        "GUID:a3b54d5dfc6e3014eb97b43eda8b47f9"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
