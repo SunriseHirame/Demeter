@@ -52,6 +52,12 @@ namespace Hirame.Muses
 #if UNITY_EDITOR
         public void AddScene (SceneAsset sceneAsset)
         {
+            if (scenes == null)
+            {
+                scenes = new[] {new SubScene (sceneAsset)};
+                return;
+            }
+            
             Array.Resize (ref scenes, scenes.Length + 1);
             scenes[scenes.Length - 1] = new SubScene (sceneAsset);
             Array.Sort (scenes);
@@ -59,8 +65,16 @@ namespace Hirame.Muses
 
         public void AddScenes (List<SceneAsset> sceneAssets)
         {
-            var count = scenes.Length;
-            Array.Resize (ref scenes, count + sceneAssets.Count);
+            var count = scenes?.Length ?? 0;
+            if (scenes == null)
+            {
+                scenes = new SubScene[sceneAssets.Count];
+            }
+            else
+            {
+                Array.Resize (ref scenes, count + sceneAssets.Count);
+            }
+            
             var j = 0;
             for (var i = count; i < scenes.Length; i++)
             {
