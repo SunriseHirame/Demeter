@@ -63,9 +63,12 @@ namespace Hirame.Muses.Editor
                    scenes.RemoveAt (i);
             }
             
+            Undo.RecordObject (target, "Add Scenes");
             (target as SceneBundle)?.AddScenes (scenes);
+            
             serializedObject.Update ();
             serializedObject.ApplyModifiedProperties ();
+            Debug.Log (serializedObject.FindProperty ("scenes").arraySize);
         }
 
         private HashSet<SceneAsset> GetIncludedScenes (SerializedProperty property)
